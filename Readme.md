@@ -6,7 +6,8 @@ Like boot2docker but with CoreOS.
 ## Features
 
 - Run docker directly from your mac 
-- Access all ports via private ip `13.0.3.3` with no port mapping required.
+- Access all ports via private ip `172.17.8.101` with no port mapping required.
+- Update the Vagrant file to also create a cluster of CoreOS machines.
 - Persistent file storage
 - Leverage all of the features from [CoreOS](https://coreos.com)
 
@@ -25,6 +26,16 @@ $ git clone https://github.com/Bodhi5/boot2coreos.git
 
 ### start boot2coreos
 
+Add your github username to the `user-data` file to allow for public key ssh auth to your coreos machine
+
+Example
+
+```
+users:
+  - name: core
+    coreos-ssh-import-github: euforic
+```
+
 From the boot2coreos directory run
 
 ```
@@ -34,7 +45,7 @@ $ vagrant up
 ### Set the environment variable for the docker daemon
 
 ```
-$ export DOCKER_HOST=tcp://13.0.3.3:4243
+$ export DOCKER_HOST=tcp://172.17.8.101:4243
 ```
 
 ## Advanced usage
@@ -45,8 +56,14 @@ These can be enabled via the Vagrant file. After updating the Vagrant file run a
 
 ### SSH into VM
 
-To ssh in to the machine you must be in the directory that contains the `Vagrantfile`
+Default login
 
+For ssh login add your github username to the `user-data` file before calling `$ vagrant up`
+```
+$ ssh core@172.17.8.101
+```
+
+To use this method you must be in the directory that contains the `Vagrantfile`
 ```
 $ vagrant ssh
 ```
@@ -55,7 +72,7 @@ $ vagrant ssh
 
   The MIT License (MIT)
 
-  Copyright (c) 2014 <Bodhi5, Inc>
+  Copyright (c) 2014 Bodhi5, Inc <info@bodhi5.com>
 
   Permission is hereby granted, free of charge, to any person obtaining a copy
   of this software and associated documentation files (the "Software"), to deal

@@ -1,24 +1,19 @@
 # -*- mode: ruby -*-
-# vi: set ft=ruby :
+# # vi: set ft=ruby :
 
-# Vagrantfile API/syntax version. Don't touch unless you know what you're doing!
-VAGRANTFILE_API_VERSION = "2"
+require_relative 'override-plugin.rb'
 
-$script = <<SCRIPT
-cp /home/core/share/units/* /media/state/units/
-cp /home/core/share/bins/docker /home/core/docker
-chmod +x /home/core/docker
-systemctl enable --runtime /media/state/units/docker-local.service
-systemctl daemon-reload
-systemctl start docker-local
-SCRIPT
+NUM_INSTANCES = (ENV['NUM_INSTANCES'].to_i > 0 && ENV['NUM_INSTANCES'].to_i) || 1
 
-Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
-  config.vm.box = "coreos"
-  config.vm.box_url = "http://storage.core-os.net/coreos/amd64-generic/dev-channel/coreos_production_vagrant.box"
+CLOUD_CONFIG_PATH = "./user-data"
 
-  config.vm.network "private_network", ip: "13.0.3.3"
-  config.vm.synced_folder ".", "/home/core/share", id: "core", :nfs => true,  :mount_options   => ['nolock,vers=3,udp']
+Vagrant.configure("2") do |config|
+  config.vm.box = "coreos-alpha"
+  config.vm.box_url = "http://storage.core-os.net/coreos/amd64-usr/alpha/coreos_production_vagrant.box"
+
+  config.vm.provider :vmware_fusion do |vb, override|
+    override.vm.box_url = "http://storage.core-os.net/coreos/amd64-usr/alpha/coreos_production_vagrant_vmware_fusion.box"
+  end
 
   # Fix docker not being able to resolve private registry in VirtualBox
   config.vm.provider :virtualbox do |vb, override|
@@ -31,6 +26,21 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     config.vbguest.auto_update = false
   end
 
-  config.vm.provision "shell", inline: $script
+  (1..NUM_INSTANCES).each do |i|
+    config.vm.define vm_name = "core-%02d" % i do |config|
+      config.vm.hostname = vm_name
 
+      ip = "172.17.8.#{i+100}"
+      config.vm.network :private_network, ip: ip
+
+      # Uncomment below to enable NFS for sharing the host machine into the coreos-vagrant VM.
+      # config.vm.synced_folder ".", "/home/core/share", id: "core", :nfs => true, :mount_options => ['nolock,vers=3,udp']
+
+      if File.exist?(CLOUD_CONFIG_PATH)
+        config.vm.provision :file, :source => "#{CLOUD_CONFIG_PATH}", :destination => "/tmp/vagrantfile-user-data"
+        config.vm.provision :shell, :inline => "mv /tmp/vagrantfile-user-data /var/lib/coreos-vagrant/", :privileged => true
+      end
+
+    end
+  end
 end
